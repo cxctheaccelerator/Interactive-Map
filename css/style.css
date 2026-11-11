@@ -62,6 +62,19 @@ details#settings summary { cursor: pointer; font-weight: 600; }
 .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
 
 .row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.field-row { display: flex; gap: 6px; }
+.field-row input { flex: 1 1 auto; min-width: 0; }
+button.small {
+  flex: 0 0 auto;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+}
+button.small:disabled { opacity: 0.6; cursor: progress; }
+.hint a { color: inherit; }
 
 button { font: inherit; cursor: pointer; }
 button.primary {

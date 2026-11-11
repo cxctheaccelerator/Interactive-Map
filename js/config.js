@@ -2,19 +2,65 @@
 window.IM = window.IM || {};
 
 IM.config = {
-  anthropic: {
-    endpoint: 'https://api.anthropic.com/v1/messages',
-    version: '2026-10-21',
-    // Models offered in Settings. `fallback` = send the server-side refusal
-    // fallback (not available on Haiku).
-    models: [
-      { id: 'claude-opus-5-5',   label: 'Claude Opus 5.5 (best)',     fallback: true },
-      { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (faster)', fallback: true },
-      { id: 'claude-haiku-5-5',  label: 'Claude Haiku 5.5 (cheapest)', fallback: false },
-    ],
-    defaultModel: 'claude-opus-5-5',
-    effort: 'low',        // place extraction is a simple task
-    maxTokens: 16000,
+  // Language-model providers. Every provider gets the same instructions and
+  // output format (systemPrompt + outputSchema below); only the way the
+  // request is sent differs (js/llm.js). Answers from all providers go
+  // through the same checks (js/validate.js).
+  llm: {
+    defaultProvider: 'anthropic',
+    providers: {
+      anthropic: {
+        label: 'Anthropic (Claude)',
+        baseUrl: 'https://api.anthropic.com/v1',
+        keyUrl: 'https://console.anthropic.com/',
+        keyPlaceholder: 'sk-ant-...',
+        defaultModel: 'claude-opus-5-5',
+        // Suggestions in the model field. `fallback` = ask the API to retry on
+        // another model if a safety classifier declines; `effort` = model
+        // accepts the effort setting.
+        models: [
+          { id: 'claude-opus-5-5',   label: 'Claude Opus 5.5 (best)',      fallback: true,  effort: true },
+          { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 (faster)',  fallback: true,  effort: true },
+          { id: 'claude-haiku-5-5',  label: 'Claude Haiku 5.5 (cheapest)', fallback: false, effort: true },
+        ],
+        version: '2026-10-21',
+        effort: 'low',      // place extraction is a simple task
+        maxTokens: 16000,
+      },
+      openai: {
+        label: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        keyUrl: 'https://platform.openai.com/api-keys',
+        keyPlaceholder: 'sk-...',
+        defaultModel: '',
+        models: [],
+      },
+      gemini: {
+        label: 'Google Gemini',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        keyUrl: 'https://aistudio.google.com/apikey',
+        keyPlaceholder: 'AIza...',
+        defaultModel: '',
+        models: [],
+      },
+      compatible: {
+        label: 'OpenAI-compatible (custom address)',
+        baseUrl: '',          // entered by the user
+        keyUrl: '',
+        keyPlaceholder: 'API key (leave empty for local models)',
+        keyOptional: true,
+        defaultModel: '',
+        models: [],
+        // Shown as suggestions for the address field.
+        examples: [
+          { label: 'OpenRouter', url: 'https://openrouter.ai/api/v1' },
+          { label: 'DeepSeek', url: 'https://api.deepseek.com' },
+          { label: 'Groq', url: 'https://api.groq.com/openai/v1' },
+          { label: 'Ollama (local)', url: 'http://localhost:11434/v1' },
+          { label: 'LM Studio (local)', url: 'http://localhost:1234/v1' },
+        ],
+      },
+    },
   },
 
   wikidata: {

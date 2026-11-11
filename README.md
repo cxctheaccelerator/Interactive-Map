@@ -6,32 +6,62 @@ History and social-science books often assume you know the geography they discus
 
 ## What it does
 
-- **Finds the places that matter.** Claude reads the passage and picks out the places a reader needs to follow the events, leaving out background mentions such as "the Romanian armies".
+- **Finds the places that matter.** A language model of your choice (Claude, GPT, Gemini, or another) reads the passage and picks out the places a reader needs to follow the events, leaving out background mentions such as "the Romanian armies".
 - **Locates them on Wikidata.** Historical names work: *Stalingrad* is found as Volgograd but labelled as the book calls it.
-- **Draws extended features as shapes.** Rivers are highlighted along their course; mountain ranges, regions, seas and lakes are outlined. Shapes come from Natural Earth. Where none exists, Claude's rough sketch is drawn dashed and marked approximate.
+- **Draws extended features as shapes.** Rivers are highlighted along their course; mountain ranges, regions, seas and lakes are outlined. Shapes come from Natural Earth. Where none exists, the model's rough sketch is drawn dashed and marked approximate.
 - **Shows the borders of the period.** The date of the events is inferred from the passage and the historical borders for that date (1886–2019) are switched on. You can change the date with the slider.
 - **Terrain base map.** Elevation colours and hillshading, optional 3D terrain, and switchable modern place names and borders.
 
 ## Quick start
 
 1. **Get the code:** clone or download this repository.
-2. **Open `index.html`** in a recent browser (Chrome, Edge, Firefox or Safari). No installation, build step or server is needed. An internet connection is needed for the map tiles, Wikidata and Claude.
-3. **Add an Anthropic API key:** open **Settings** in the sidebar and paste your key. You can create one at [console.anthropic.com](https://console.anthropic.com/). The API is billed separately from a Claude.ai subscription.
+2. **Open `index.html`** in a recent browser (Chrome, Edge, Firefox or Safari). No installation, build step or server is needed. An internet connection is needed for the map tiles, Wikidata and the language model.
+3. **Choose a language model:** open **Settings** in the sidebar, pick a **provider**, paste your API key and choose a **model** (see [Language models](#language-models) below).
 4. **Try it:** click **Load example**, then **Map places**.
 
-### About the API key and cost
+## Language models
 
-- The key is sent only to `api.anthropic.com`, directly from your browser. It is never written into the project files.
-- By default the key is forgotten when you close the tab. If you tick **Remember on this device**, it is stored in your browser's local storage, in plain text.
-- Each passage costs roughly 2–5 US cents with Claude Opus 5.5 (the default), about 1–2 cents with Sonnet 5.5, and a fraction of a cent with Haiku 5.5. You can switch models in Settings. The token count of each run is shown after it finishes.
-- Tip: set a monthly spend limit in the Anthropic Console and use a key dedicated to this app.
+The app works with several providers. You bring your own API key; the app calls the provider directly from your browser.
+
+| Provider | What you need | Output format |
+|---|---|---|
+| **Anthropic (Claude)** (default) | An API key from [console.anthropic.com](https://console.anthropic.com/). Model suggestions are built in. | Enforced by the provider |
+| **OpenAI** | An API key from [platform.openai.com](https://platform.openai.com/api-keys). Click **List models** to choose. | Enforced by the provider (strict mode) |
+| **Google Gemini** | An API key from [aistudio.google.com](https://aistudio.google.com/apikey). Click **List models** to choose. | Enforced by the provider |
+| **OpenAI-compatible (custom address)** | The service's address, a key if it needs one, and a model name. Suggested addresses: OpenRouter (`https://openrouter.ai/api/v1`, hundreds of models with one key), DeepSeek (`https://api.deepseek.com`), Groq (`https://api.groq.com/openai/v1`), Ollama (`http://localhost:11434/v1`) and LM Studio (`http://localhost:1234/v1`). | Depends on the service and model |
+
+API access is billed separately from chat subscriptions such as Claude.ai, ChatGPT or the Gemini app.
+
+### How the app keeps providers consistent
+
+- **Same instructions for every model.** All providers receive identical instructions, defined once in `js/config.js`: what to extract, which places are relevant, how to describe shapes, how to infer the period, plus the exact output format as a JSON Schema.
+- **Format enforcement where available.** If the provider can guarantee the output format, the app asks it to. If the provider or model refuses that, the app automatically retries with "JSON only", then without any format option, relying on the instructions.
+- **Same checks on every answer.** Whatever the provider, the answer goes through the same validation (`js/validate.js`). It extracts the JSON even if surrounded by other text, drops incomplete or repeated places, fixes swapped coordinates and fills in missing fields. The status line after each run says which model answered, how its format was handled, and how many entries had to be repaired.
+
+Results still depend on the model. Smaller models are weaker at judging which places are relevant, estimating rough positions and sketching outlines. The Wikidata and Natural Earth lookups correct most errors in names and positions, but not missing or irrelevant places. Uncertain results are shown in orange.
+
+### API keys and cost
+
+- Keys are sent only to the provider's address shown under the key field, directly from your browser. They are never written into the project files.
+- Each provider has its own key. By default a key is forgotten when you close the tab. If you tick **Remember on this device**, it is stored in your browser's local storage, in plain text.
+- Cost depends on the model. As a guide, each passage costs roughly 2–5 US cents with Claude Opus 5.5, about 1–2 cents with Claude Sonnet 5.5, and a fraction of a cent with Claude Haiku 5.5 or similar small models. The token count of each run is shown after it finishes. Local models are free.
+- Tip: set a monthly spend limit in your provider's console and use a key dedicated to this app.
+
+### Local models (Ollama, LM Studio)
+
+Browsers only let a page talk to a local server that explicitly allows it. When `index.html` is opened from disk, the page's origin is `null`, so allow all origins:
+
+- **Ollama:** start it with `OLLAMA_ORIGINS="*" ollama serve`. On macOS, if Ollama runs as an app, run `launchctl setenv OLLAMA_ORIGINS "*"` and restart Ollama. Then use the address `http://localhost:11434/v1` and a model you have pulled, for example by clicking **List models**.
+- **LM Studio:** start the local server and turn on **Enable CORS** in its server settings. Use the address `http://localhost:1234/v1`.
+
+Larger local models give noticeably better results for this task than very small ones.
 
 ## Using the map
 
 | Control | What it does |
 |---|---|
 | Sidebar list | Click a place to zoom to it. The dropdown lets you pick a different Wikidata match if the first guess is wrong. |
-| Orange markers or entries | The match is uncertain, or the shape is only Claude's approximate sketch. |
+| Orange markers or entries | The match is uncertain, or the shape is only the model's approximate sketch. |
 | **Layers** panel | Toggle elevation colours, hillshading, modern place names, modern borders and historical borders. Change the date of the historical borders. |
 | Mountain button (top right) | 3D terrain. Hold right-click or Ctrl and drag to tilt. |
 
@@ -40,9 +70,10 @@ History and social-science books often assume you know the geography they discus
 ```
 index.html            the app: open this
 css/style.css         styling
-js/config.js          settings, Claude's instructions and output format
+js/config.js          settings, providers, the model instructions and output format
 js/basemap.js         terrain base map and layer switches
-js/llm.js             Claude API call (user's own key)
+js/llm.js             language-model calls for each provider (user's own key)
+js/validate.js        checks and repairs every model answer the same way
 js/wikidata.js        place-name search and coordinates via Wikidata
 js/shapes.js          matching rivers, ranges and regions to Natural Earth shapes
 js/borders.js         historical borders layer (CShapes)
@@ -90,9 +121,9 @@ This project builds on the following data and software. Please keep these credit
 - **Water, rivers and modern labels on the base map:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL), via [OpenMapTiles](https://openmaptiles.org/) and [OpenFreeMap](https://openfreemap.org/).
 - **Terrain (elevation):** [Mapzen Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data. Elevation data from several sources, including SRTM, GMTED2010 and ETOPO1; see [the full attribution list](https://github.com/tilezen/joerd/blob/master/docs/attribution.md).
 - **Map engine:** [MapLibre GL JS](https://maplibre.org/) (BSD 3-Clause).
-- **Text analysis:** [Claude](https://www.anthropic.com/claude) by Anthropic, via each user's own API key.
+- **Text analysis:** the language model chosen by each user (Anthropic Claude, OpenAI, Google Gemini or an OpenAI-compatible service), via the user's own API key.
 
-The map shows these credits in its attribution line (bottom right). Each credit appears while its data is visible.
+The map shows these credits in its attribution line (bottom right). The CShapes credit appears once historical borders are switched on.
 
 ## License
 

@@ -16,12 +16,26 @@
 
     <details id="settings">
       <summary>Settings</summary>
-      <label for="api-key">Anthropic API key</label>
-      <input id="api-key" type="password" autocomplete="off" placeholder="sk-ant-...">
+      <label for="provider">Provider</label>
+      <select id="provider"></select>
+
+      <div id="base-url-row" hidden>
+        <label for="base-url">Service address</label>
+        <input id="base-url" type="text" list="base-url-options" autocomplete="off" placeholder="https://…/v1">
+        <datalist id="base-url-options"></datalist>
+      </div>
+
+      <label for="api-key">API key</label>
+      <input id="api-key" type="password" autocomplete="off">
       <label class="inline"><input id="remember-key" type="checkbox"> Remember on this device</label>
-      <p class="hint">The key is sent only to api.anthropic.com. If remembered, it is stored in this browser's local storage in plain text.</p>
+      <p class="hint" id="key-hint"></p>
+
       <label for="model">Model</label>
-      <select id="model"></select>
+      <div class="field-row">
+        <input id="model" type="text" list="model-options" autocomplete="off" placeholder="model name">
+        <button id="list-models" class="small" type="button">List models</button>
+      </div>
+      <datalist id="model-options"></datalist>
     </details>
 
     <label for="passage">Passage</label>
@@ -63,6 +77,7 @@
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
   <script src="js/config.js"></script>
   <script src="js/basemap.js"></script>
+  <script src="js/validate.js"></script>
   <script src="js/llm.js"></script>
   <script src="js/wikidata.js"></script>
   <script src="js/shapes.js"></script>

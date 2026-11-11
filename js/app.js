@@ -3,11 +3,11 @@ window.IM = window.IM || {};
 
 (function () {
   const $ = (id) => document.getElementById(id);
-  const KEY_STORE = 'im.apiKey';
-  const MODEL_STORE = 'im.model';
 
   const els = {
-    apiKey: $('api-key'), remember: $('remember-key'), model: $('model'),
+    provider: $('provider'), baseUrl: $('base-url'), baseUrlRow: $('base-url-row'), baseUrlOptions: $('base-url-options'),
+    apiKey: $('api-key'), remember: $('remember-key'), keyHint: $('key-hint'),
+    model: $('model'), modelOptions: $('model-options'), listModels: $('list-models'),
     passage: $('passage'), run: $('run'), example: $('example'), clear: $('clear'),
     status: $('status'), results: $('results'), layers: $('layers'),
   };
@@ -19,26 +19,114 @@ window.IM = window.IM || {};
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } },
   };
 
-  // ---------- settings ----------
-  IM.config.anthropic.models.forEach((m) => {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.label;
-    els.model.appendChild(opt);
-  });
-  els.model.value = store.get(MODEL_STORE) || IM.config.anthropic.defaultModel;
-  els.model.addEventListener('change', () => store.set(MODEL_STORE, els.model.value));
+  // ---------- settings: provider, address, key, model ----------
+  // Keys are kept per provider: in memory for this tab, and in local storage
+  // only if "Remember on this device" is ticked.
+  const PROVIDERS = IM.config.llm.providers;
+  const keyStore = (p) => `im.key.${p}`;
+  const modelStore = (p) => `im.model.${p}`;
+  const sessionKeys = {};
 
-  const savedKey = store.get(KEY_STORE);
-  if (savedKey) { els.apiKey.value = savedKey; els.remember.checked = true; }
-  else { $('settings').open = true; }
+  // Settings saved by the earlier, Claude-only version.
+  if (store.get('im.apiKey') && !store.get(keyStore('anthropic'))) store.set(keyStore('anthropic'), store.get('im.apiKey'));
+  if (store.get('im.model') && !store.get(modelStore('anthropic'))) store.set(modelStore('anthropic'), store.get('im.model'));
+  store.del('im.apiKey');
+  store.del('im.model');
+
+  Object.entries(PROVIDERS).forEach(([id, cfg]) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = cfg.label;
+    els.provider.appendChild(opt);
+  });
+  PROVIDERS.compatible.examples.forEach((ex) => {
+    const opt = document.createElement('option');
+    opt.value = ex.url;
+    opt.label = ex.label;
+    els.baseUrlOptions.appendChild(opt);
+  });
+
+  const provider = () => els.provider.value;
+  function settings() {
+    return { provider: provider(), apiKey: els.apiKey.value.trim(), model: els.model.value.trim(), baseUrl: els.baseUrl.value.trim() };
+  }
+
+  function setModelOptions(items) {
+    els.modelOptions.innerHTML = '';
+    items.forEach(({ value, label }) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      if (label) opt.label = label;
+      els.modelOptions.appendChild(opt);
+    });
+  }
+
+  function renderKeyHint() {
+    const p = provider(), cfg = PROVIDERS[p];
+    let host = 'the address above';
+    try { host = new URL(p === 'compatible' ? els.baseUrl.value : cfg.baseUrl).host || host; } catch (e) { /* not a URL yet */ }
+    els.keyHint.textContent = `The key is sent only to ${host}. `;
+    if (cfg.keyUrl) {
+      els.keyHint.append('Get one at ');
+      const a = document.createElement('a');
+      a.href = cfg.keyUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = new URL(cfg.keyUrl).host;
+      els.keyHint.append(a, '. ');
+    } else if (cfg.keyOptional) {
+      els.keyHint.append('Local servers usually need no key. ');
+    }
+    els.keyHint.append("If remembered, it is stored in this browser's local storage in plain text.");
+  }
+
+  function loadProvider() {
+    const p = provider(), cfg = PROVIDERS[p];
+    els.baseUrlRow.hidden = p !== 'compatible';
+    const saved = store.get(keyStore(p));
+    els.apiKey.value = saved || sessionKeys[p] || '';
+    els.remember.checked = !!saved;
+    els.apiKey.placeholder = cfg.keyPlaceholder || '';
+    els.model.value = store.get(modelStore(p)) || cfg.defaultModel || '';
+    els.model.placeholder = cfg.models.length ? 'model name' : 'model name, or click "List models"';
+    setModelOptions(cfg.models.map((m) => ({ value: m.id, label: m.label })));
+    renderKeyHint();
+  }
+
+  els.provider.value = PROVIDERS[store.get('im.provider')] ? store.get('im.provider') : IM.config.llm.defaultProvider;
+  els.baseUrl.value = store.get('im.baseUrl') || '';
+  loadProvider();
+  if (!els.apiKey.value && !PROVIDERS[provider()].keyOptional) $('settings').open = true;
 
   function syncKeyStorage() {
-    if (els.remember.checked && els.apiKey.value.trim()) store.set(KEY_STORE, els.apiKey.value.trim());
-    else store.del(KEY_STORE);
+    const p = provider(), key = els.apiKey.value.trim();
+    sessionKeys[p] = key;
+    if (els.remember.checked && key) store.set(keyStore(p), key);
+    else store.del(keyStore(p));
   }
+  els.provider.addEventListener('change', () => { store.set('im.provider', provider()); loadProvider(); });
   els.remember.addEventListener('change', syncKeyStorage);
-  els.apiKey.addEventListener('change', syncKeyStorage);
+  els.apiKey.addEventListener('input', syncKeyStorage);
+  els.model.addEventListener('change', () => store.set(modelStore(provider()), els.model.value.trim()));
+  els.baseUrl.addEventListener('change', () => { store.set('im.baseUrl', els.baseUrl.value.trim()); renderKeyHint(); });
+
+  els.listModels.addEventListener('click', async () => {
+    els.listModels.disabled = true;
+    setStatus('Asking the provider which models this key can use…');
+    try {
+      const ids = await IM.llm.listModels(settings());
+      const known = new Map(PROVIDERS[provider()].models.map((m) => [m.id, m.label]));
+      setModelOptions(ids.sort().map((id) => ({ value: id, label: known.get(id) })));
+      setStatus(ids.length
+        ? `Found ${ids.length} models. Click the model field (or clear it) to choose from the list.`
+        : 'The provider returned no models for this key.');
+      els.model.focus();
+    } catch (e) {
+      setStatus(e.message || String(e), true);
+    } finally {
+      els.listModels.disabled = false;
+    }
+  });
 
   // ---------- map ----------
   const map = IM.basemap.createMap('map');
@@ -485,20 +573,24 @@ window.IM = window.IM || {};
   // ---------- main pipeline ----------
   async function run() {
     const text = els.passage.value.trim();
-    const apiKey = els.apiKey.value.trim();
-    if (!apiKey) { $('settings').open = true; els.apiKey.focus(); setStatus('Enter your Anthropic API key in Settings first.', true); return; }
+    const s = settings();
+    const cfg = PROVIDERS[s.provider];
+    const needs = (msg, field) => { $('settings').open = true; field.focus(); setStatus(msg, true); };
+    if (s.provider === 'compatible' && !s.baseUrl) return needs('Enter the service address in Settings first.', els.baseUrl);
+    if (!s.apiKey && !cfg.keyOptional) return needs(`Enter your ${cfg.label} API key in Settings first.`, els.apiKey);
+    if (!s.model) return needs('Enter a model name in Settings first (or click "List models").', els.model);
     if (!text) { setStatus('Paste a passage first.', true); return; }
 
     els.run.disabled = true;
     if (popup) popup.remove();
     try {
-      setStatus('Reading the passage with Claude…');
-      const { places, period, usage } = await IM.llm.extractPlaces(text, { apiKey, model: els.model.value });
+      setStatus(`Reading the passage with ${s.model}…`);
+      const { places, period, usage, model, formatLabel, fixes } = await IM.llm.extractPlaces(text, s);
       showPeriod(period);
       if (!places.length) {
         resolved = [];
         renderResults(); updateMap();
-        setStatus('No places found in this passage.');
+        setStatus(`No places found in this passage (model: ${model}).`);
         return;
       }
 
@@ -520,7 +612,9 @@ window.IM = window.IM || {};
       const unsure = resolved.filter((r) => r.uncertain || r.geomSource === 'approximate').length;
       let msg = `Mapped ${found} of ${places.length} places.`;
       if (unsure) msg += ` ${unsure} uncertain (orange).`;
-      if (usage) msg += `\nTokens: ${usage.input_tokens} in, ${usage.output_tokens} out.`;
+      msg += `\nModel: ${model} (${formatLabel}).`;
+      if (fixes) msg += ` ${fixes} ${fixes === 1 ? 'entry' : 'entries'} in its answer had to be repaired or dropped.`;
+      if (usage) msg += `\nTokens: ${usage.input} in, ${usage.output} out.`;
       setStatus(msg);
     } catch (e) {
       console.error(e);
