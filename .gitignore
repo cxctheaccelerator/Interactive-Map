@@ -1,0 +1,10 @@
+# Raw downloads (~50 MB); recreate with: python3 tools/download_data.py
+data/raw/
+
+# Python / editor / OS clutter
+__pycache__/
+*.pyc
+*.part
+.DS_Store
+.vscode/
+.idea/

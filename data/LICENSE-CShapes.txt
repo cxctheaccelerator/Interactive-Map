@@ -1,0 +1,25 @@
+data/cshapes.js is derived from the CShapes 2.0 dataset.
+
+CShapes 2.0 by Guy Schvitz, Seraina Rüegger, Luc Girardin, Lars-Erik Cederman,
+Nils Weidmann and Kristian Skrede Gleditsch is licensed under the Creative
+Commons Attribution-NonCommercial-ShareAlike 4.0 International License
+(CC BY-NC-SA 4.0): https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Source: https://icr.ethz.ch/data/cshapes/
+
+Citation:
+  Schvitz, Guy, Seraina Rüegger, Luc Girardin, Lars-Erik Cederman, Nils Weidmann,
+  and Kristian Skrede Gleditsch. 2022. "Mapping The International System,
+  1886-2017: The CShapes 2.0 Dataset." Journal of Conflict Resolution 66(1):
+  144-61.
+
+Changes made: the original GeoJSON was converted by tools/build_cshapes.py.
+Outlines were simplified to about 2 km, coordinates were rounded, attributes
+were reduced to name, Gleditsch-Ward code, area, start/end date and capital,
+and a label point was added for each country. The result is distributed under
+the same license, CC BY-NC-SA 4.0.
+
+In short, this means data/cshapes.js may be shared and adapted only for
+non-commercial purposes, with credit to the CShapes authors, and adaptations
+must be shared under the same license. The rest of this project is under the
+MIT license (see LICENSE in the project root).
