@@ -8,3 +8,6 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+# Claude Code personal settings (keep project settings and skills in git)
+.claude/settings.local.json
