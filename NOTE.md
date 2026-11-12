@@ -6,20 +6,20 @@ Last updated: 2026-11-12
 
 ## Current status
 
-- Version 1.1.0 (README top line + "Versions" section).
+- Version 1.0.1 (README top line + "Versions" section).
 - Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown. All our names are always shown, without overlaps.
-- LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only. The generalised prompt (1.1.0) has not been run against a real model yet.
-- Repository: on GitHub, branch `main`, last commit "screenshot updated" (version 1.0.0). The 1.1.0 changes (label layout, prompt, CLAUDE.md, README, NOTE.md, screenshot) are uncommitted; the user commits and pushes by hand.
+- LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only. The generalised prompt (1.0.1) has not been run against a real model yet.
+- Repository: on GitHub, branch `main`, last commit "screenshot updated" (version 1.0.0). The 1.0.1 changes (label layout, prompt, CLAUDE.md, README, NOTE.md, screenshot) are uncommitted; the user commits and pushes by hand.
 - Data: `data/cshapes.js` and `data/naturalearth.js` are committed; raw data (~50 MB) is git-ignored and rebuilt with `python3 tools/download_data.py`.
 
 ## Recent updates
 
-### 2026-11-12 — version 1.1.0
+### 2026-11-12 — version 1.0.1
 - Prompt (`js/config.js`): no longer about history books or wars; examples changed to trade, migration, famine etc. Output format unchanged.
 - New `js/labels.js`: our names are laid out on every pan/zoom. Each name tries candidate positions and takes the first that collides with nothing (other names, dots, Layers panel, map controls), else the least-overlapping one. Drawn with `text-allow-overlap`, so none are hidden; base-map labels yield. Names pushed away from their dot get a thin leader line.
 - River and area names follow the visible part when the relevant stretch or centre is off screen. Short rivers fall back to the whole river (`riverLabelStretches` in `js/shapes.js` replaces `riverLabelLine`).
 - Tested with a mock LLM at zoom 2–9: all names drawn in every view, no overlaps seen in screenshots. Before, Don/Caucasus/Kuban names vanished at some zooms.
-- Version numbers introduced (1.0.0, then 1.1.0). README screenshot is retaken whenever the README changes (rule in CLAUDE.md). CLAUDE.md: goal generalised, labels step and conventions added.
+- Version numbers introduced (1.0.0, then 1.0.1). README screenshot is retaken whenever the README changes (rule in CLAUDE.md). CLAUDE.md: goal generalised, labels step and conventions added.
 - Explainer page "Inside the History Map" published as a private claude.ai artifact (not in the repo).
 
 ### 2026-11-11

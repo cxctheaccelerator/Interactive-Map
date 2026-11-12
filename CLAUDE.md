@@ -51,7 +51,7 @@ docs/screenshot.png     README screenshot
 - **No secrets in the repo:** API keys live only in the user's browser.
 - **Label styles:** fonts and sizes of the label layers in `js/app.js` must match `STYLE` in `js/labels.js` (used to measure text for the layout).
 - **Prompt scope:** keep `systemPrompt` general (any kind of text, not only history or military topics).
-- **Version:** shown in README (top line + "Versions" section), MAJOR.MINOR.PATCH. Propose the next number when a change is finished; update both places once the user agrees.
+- **Version:** shown in README (top line + "Versions" section), MAJOR.MINOR.PATCH, by the user's rule: PATCH = bug fixes and small improvements; MINOR = larger additions (new kinds of things drawn, more maps/eras); MAJOR = much larger changes (e.g. other platforms). Propose the next number when a change is finished; update README and NOTE.md once the user agrees.
 - **README screenshot:** whenever README.md is updated, retake `docs/screenshot.png` from the current GUI (mock LLM, example passage, Settings collapsed, 1400×900) and replace the old one.
 
 ## Testing (this machine)
