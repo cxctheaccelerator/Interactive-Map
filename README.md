@@ -1,5 +1,7 @@
 # Interactive History Map
 
+**Version 1.0.0** · see [Versions](#versions)
+
 History and social-science books often assume you know the geography they discuss. This app turns a passage of text into a map: paste a paragraph, and it marks the places the passage mentions, highlights the rivers, mountain ranges and regions involved, and shows the borders of the time.
 
 ![Screenshot: a passage about the 1942 German summer offensive mapped over terrain, with cities marked, the Don and Volga highlighted and the Caucasus outlined](docs/screenshot.png)
@@ -109,6 +111,12 @@ The data files are `.js` rather than `.json` so that the app also works when `in
 - Borders are simplified to about 2 km, which is coarse when zoomed in on a single battlefield.
 - Modern place names come from today's maps, for example "Volgograd" near the book's "Stalingrad". You can switch them off in the Layers panel.
 - Wikidata limits how many requests anonymous users can make. Very long passages may pause briefly while the app waits and retries.
+
+## Versions
+
+Version numbers follow the pattern MAJOR.MINOR.PATCH: the last number goes up for bug fixes, the middle one for new features, and the first one for big changes in how the app works.
+
+- **1.0.0** (2026-11-11): first release. Places, rivers, mountain ranges and regions mapped from a passage; Wikidata lookup; Natural Earth shapes; historical borders (CShapes, 1886–2019) with the period inferred from the text; terrain base map; language models from Anthropic, OpenAI, Google Gemini and OpenAI-compatible services.
 
 ## Credits and data sources
 
