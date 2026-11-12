@@ -1,6 +1,6 @@
 # Interactive History Map
 
-**Version 1.0.0** · see [Versions](#versions)
+**Version 1.1.0** · see [Versions](#versions)
 
 History and social-science books often assume you know the geography they discuss. This app turns a passage of text into a map: paste a paragraph, and it marks the places the passage mentions, highlights the rivers, mountain ranges and regions involved, and shows the borders of the time.
 
@@ -78,6 +78,7 @@ js/llm.js             language-model calls for each provider (user's own key)
 js/validate.js        checks and repairs every model answer the same way
 js/wikidata.js        place-name search and coordinates via Wikidata
 js/shapes.js          matching rivers, ranges and regions to Natural Earth shapes
+js/labels.js          positions the names so that all show and none overlap
 js/borders.js         historical borders layer (CShapes)
 js/app.js             user interface and map drawing
 data/cshapes.js       processed CShapes borders (generated)
@@ -116,6 +117,7 @@ The data files are `.js` rather than `.json` so that the app also works when `in
 
 Version numbers follow the pattern MAJOR.MINOR.PATCH: the last number goes up for bug fixes, the middle one for new features, and the first one for big changes in how the app works.
 
+- **1.1.0** (2026-11-12): place names on the map are laid out so that all of them show and none overlap; a name that has to move away from its dot is joined to it by a thin line. River and area names follow the part that is on screen, and short rivers always get a name. The model instructions are now general (any kind of text, not only history or wars).
 - **1.0.0** (2026-11-11): first release. Places, rivers, mountain ranges and regions mapped from a passage; Wikidata lookup; Natural Earth shapes; historical borders (CShapes, 1886–2019) with the period inferred from the text; terrain base map; language models from Anthropic, OpenAI, Google Gemini and OpenAI-compatible services.
 
 ## Credits and data sources

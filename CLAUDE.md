@@ -4,7 +4,7 @@
 
 ## Goal
 
-The user reads history and social-science books that assume geographic knowledge. This app turns a passage of text into a map: it marks the places that matter for following the text, highlights rivers, mountain ranges and regions, and shows the borders of the period. Long-term: modes for different eras, more languages (Chinese), possibly armies and front lines.
+The user reads texts that assume geographic knowledge (history and social-science books were the starting examples, but the app is meant for any kind of text, not only history or wars). This app turns a passage of text into a map: it marks the places that matter for following the text, highlights rivers, mountain ranges and regions, and shows the borders of the period. Long-term: modes for different eras, more languages (Chinese), possibly armies and front lines.
 
 Core idea: the language model returns only a small structured "scene" (places + period, as JSON); the app draws it over a fixed base map. The model never draws maps, which keeps tokens low.
 
@@ -16,6 +16,7 @@ Core idea: the language model returns only a small structured "scene" (places + 
 4. **Shapes** (`js/shapes.js`): lines and areas are matched to Natural Earth by Wikidata ID or name + distance. Otherwise the model's outline is used (dashed, marked approximate). Otherwise a point.
 5. **Borders** (`js/borders.js`): the inferred period sets the CShapes date (1886–2019) and switches borders on.
 6. **Rendering** (`js/app.js`, `js/basemap.js`): terrain base map (hypsometric colour-relief + hillshade from AWS Terrarium tiles, water/labels from OpenFreeMap vector tiles), numbered markers, highlighted rivers, outlined areas, sidebar list with alternative Wikidata matches.
+7. **Labels** (`js/labels.js`): our names are laid out in screen space on every `moveend`: each name tries candidate positions (8 sides × 4 distances around a dot; river stretches + either side of the line; offsets inside an area), the first collision-free one wins (avoiding other names, dots, the Layers panel and map controls), else the least-overlapping one. They are drawn with `text-allow-overlap`, so all show and base-map labels yield. Off-screen stretches/centres fall back to the visible part of the river/area.
 
 ## Project structure
 
@@ -26,7 +27,8 @@ js/config.js            providers, model instructions (systemPrompt), output JSO
 js/llm.js               one adapter per provider; same instructions for all
 js/validate.js          shared answer checks/repairs
 js/wikidata.js          name search, coordinates, ranking, rate-limit retries
-js/shapes.js            Natural Earth matching, river label stretch
+js/shapes.js            Natural Earth matching, candidate river label stretches
+js/labels.js            label layout: all names shown, none overlapping, recomputed on every move
 js/borders.js           CShapes layer, lazy-loaded
 js/basemap.js           base map style and layer toggles
 js/app.js               UI, settings, pipeline, map layers
@@ -47,6 +49,10 @@ docs/screenshot.png     README screenshot
 - **Data rebuilds:** keep `tools/build_naturalearth.py`'s `normalise()` and `js/shapes.js`'s `normaliseName()` identical. Natural Earth is pinned to v5.1.2.
 - **Licences:** code MIT; `data/cshapes.js` stays CC BY-NC-SA 4.0. Keep the credits in the README and the map attribution.
 - **No secrets in the repo:** API keys live only in the user's browser.
+- **Label styles:** fonts and sizes of the label layers in `js/app.js` must match `STYLE` in `js/labels.js` (used to measure text for the layout).
+- **Prompt scope:** keep `systemPrompt` general (any kind of text, not only history or military topics).
+- **Version:** shown in README (top line + "Versions" section), MAJOR.MINOR.PATCH. Propose the next number when a change is finished; update both places once the user agrees.
+- **README screenshot:** whenever README.md is updated, retake `docs/screenshot.png` from the current GUI (mock LLM, example passage, Settings collapsed, 1400×900) and replace the old one.
 
 ## Testing (this machine)
 

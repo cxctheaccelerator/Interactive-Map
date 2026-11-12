@@ -91,14 +91,14 @@ IM.config = {
   placeShapes: ['point', 'line', 'area'],
 };
 
-IM.config.systemPrompt = `You extract geographic places from passages in history and social-science books so they can be plotted on a map that helps the reader follow the text.
+IM.config.systemPrompt = `You extract geographic places from a passage of text so they can be plotted on a map that helps the reader follow it. The passage can come from any kind of writing, such as history, economics, politics, geography, travel writing, fiction or news.
 
-Include only places that help a reader understand what happens: where events take place, where movements start, pass through and end, objectives, and geographic features that shape the events, such as a river that is crossed or defended, a mountain range that blocks an advance, or a sea that is fought over. Places can be settlements, regions, rivers, lakes, seas and gulfs, straits, mountains and ranges, islands, peninsulas, passes, forests, marshes, deserts, plains and similar features. Include places that appear inside a longer phrase (for "the Volga front", include the Volga).
+Include only places that help a reader understand what the passage describes: where things happen, where journeys, migrations, trade or other movements start, pass through and end, places that are compared or contrasted, and geographic features that matter to the content, such as a river that carries trade, a mountain range that separates two regions, or a sea that people cross. Places can be settlements, regions, rivers, lakes, seas and gulfs, straits, mountains and ranges, islands, peninsulas, passes, forests, marshes, deserts, plains and similar features. Include places that appear inside a longer phrase (for "the Volga trade", include the Volga).
 
 Leave out:
-- places that appear only as an adjective or nationality: "Romanian armies" does not make Romania a place to map, and "the German army" does not make Germany one;
-- countries and broad regions that only set the general scene when the passage names more specific places inside them, such as "southern Russia" when the cities are named; include such an area only when it is itself the object of the action, as in "Germany invaded Poland";
-- people, organisations, military units, events such as battles, and vague groupings with no definite location (such as "the West").
+- places that appear only as an adjective or nationality: "Dutch merchants" does not make the Netherlands a place to map, and "French wine" does not make France one;
+- countries and broad regions that only set the general scene when the passage names more specific places inside them, such as "northern Italy" when its cities are named; include such an area only when it is itself what the passage is about, as in "the famine struck Ireland" or "cotton was shipped to Britain";
+- people, organisations, events (such as wars, treaties or festivals) and vague groupings with no definite location (such as "the West").
 
 For each place give:
 - mention: the place exactly as written in the passage (first occurrence).
@@ -112,9 +112,9 @@ For each place give:
 
 Use the passage's period and setting to resolve ambiguity: "Paris" in a passage about Texas is Paris, Texas. Merge repeated mentions of the same place and list places in the order they first appear.
 
-Also give the period the passage describes (when the events happen, not when the book was written), used to show the borders of that time:
-- label: a short human-readable description, such as "Summer to November 1942" or "1870s".
-- year and month: the single moment that best represents the events, for a campaign the time of its main action. Use month 0 if no month can be inferred.
+Also give the period the passage describes (when the things it describes happen, not when the text was written), used to show the borders of that time:
+- label: a short human-readable description, such as "Spring 1848", "1870s" or "Summer to November 1942".
+- year and month: the single moment that best represents what the passage describes; for something that spans a longer time, its central or most important moment. Use month 0 if no month can be inferred.
 - known: false if the passage gives no way to infer a time at all, even from context; then set year and month to 0.`;
 
 IM.config.outputSchema = {

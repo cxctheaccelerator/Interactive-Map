@@ -86,11 +86,14 @@ window.IM = window.IM || {};
     return nearest;
   }
 
-  // A short piece of river next to `pt`, used to write the river's name once,
-  // on the stretch the passage is about. The piece starts a little away from
-  // `pt` (often a city whose own label sits there) and runs up- or downstream,
-  // whichever way the river is straighter, so the curved label fits.
-  function riverLabelLine(geom, pt, lengthKm, gapKm) {
+  // Short pieces of river near `pt`, where the river's name can be written
+  // (js/labels.js picks the first one that doesn't collide with other names).
+  // Each piece starts a little away from `pt` (often a city whose own name sits
+  // there) and runs up- or downstream; pieces further along the river come
+  // later in the list, and of two pieces at the same distance the straighter
+  // one comes first. If the river is too short for any piece, the whole river
+  // is returned, so a short river still gets its name.
+  function riverLabelStretches(geom, pt, lengthKm, gapKm) {
     const lines = geom.type === 'LineString' ? [geom.coordinates]
       : geom.type === 'MultiLineString' ? geom.coordinates : [];
     let best = Infinity, li = -1, vi = -1;
@@ -98,15 +101,15 @@ window.IM = window.IM || {};
       const d = dist(pt, v);
       if (d < best) { best = d; li = i; vi = j; }
     }));
-    if (li < 0) return null;
+    if (li < 0) return [];
     const l = lines[li];
 
-    function walk(step) {
+    function walk(start, step) {
       const out = [];
       let acc = 0;
-      for (let i = vi; i + step >= 0 && i + step < l.length && acc < gapKm + lengthKm; i += step) {
+      for (let i = vi; i + step >= 0 && i + step < l.length && acc < start + lengthKm; i += step) {
         acc += dist(l[i], l[i + step]);
-        if (acc >= gapKm) out.push(l[i + step]);
+        if (acc >= start) out.push(l[i + step]);
       }
       if (out.length < 2) return null;
       let path = 0;
@@ -114,8 +117,26 @@ window.IM = window.IM || {};
       const straightness = dist(out[0], out[out.length - 1]) / (path || 1);
       return { coords: out, score: straightness * Math.min(1, path / lengthKm) };
     }
-    const options = [walk(1), walk(-1)].filter(Boolean).sort((a, b) => b.score - a.score);
-    return options.length ? options[0].coords : null;
+    // A piece centred on `pt` itself: useful when only a corner of the river
+    // is on screen and pieces starting at `pt` would run off it.
+    function centred() {
+      const half = lengthKm / 2, back = [], fwd = [];
+      let acc = 0;
+      for (let i = vi; i - 1 >= 0 && acc < half; i--) { acc += dist(l[i], l[i - 1]); back.push(l[i - 1]); }
+      acc = 0;
+      for (let i = vi; i + 1 < l.length && acc < half; i++) { acc += dist(l[i], l[i + 1]); fwd.push(l[i + 1]); }
+      const coords = [...back.reverse(), l[vi], ...fwd];
+      return coords.length >= 2 ? coords : null;
+    }
+    const result = [];
+    [0, 0.5, 1, 1.5, 2].forEach((k, n) => {
+      [walk(gapKm + k * lengthKm, 1), walk(gapKm + k * lengthKm, -1)].filter(Boolean)
+        .sort((a, b) => b.score - a.score)
+        .forEach((o) => result.push(o.coords));
+      if (n === 0) { const c = centred(); if (c) result.push(c); }
+    });
+    if (!result.length && l.length >= 2) result.push(l);
+    return result;
   }
 
   // ---------- matching ----------
@@ -195,5 +216,5 @@ window.IM = window.IM || {};
     return resolved;
   }
 
-  IM.shapes = { attachAll, attach, riverLabelLine, normaliseName };
+  IM.shapes = { attachAll, attach, riverLabelStretches, normaliseName };
 })();

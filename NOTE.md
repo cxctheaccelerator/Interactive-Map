@@ -2,16 +2,25 @@
 
 Maintained by the `handoff` skill (`.claude/skills/handoff`). Target length: about 100 lines. Newest updates first.
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 ## Current status
 
-- Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown.
-- LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only.
-- Repository: on GitHub, branch `main`, 2 commits ("project initialized", "Added support for mainstream LLM providers"). The working tree was clean before CLAUDE.md, NOTE.md and the handoff skill were added (not yet committed).
+- Version 1.1.0 (README top line + "Versions" section).
+- Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown. All our names are always shown, without overlaps.
+- LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only. The generalised prompt (1.1.0) has not been run against a real model yet.
+- Repository: on GitHub, branch `main`, last commit "screenshot updated" (version 1.0.0). The 1.1.0 changes (label layout, prompt, CLAUDE.md, README, NOTE.md, screenshot) are uncommitted; the user commits and pushes by hand.
 - Data: `data/cshapes.js` and `data/naturalearth.js` are committed; raw data (~50 MB) is git-ignored and rebuilt with `python3 tools/download_data.py`.
 
 ## Recent updates
+
+### 2026-11-12 — version 1.1.0
+- Prompt (`js/config.js`): no longer about history books or wars; examples changed to trade, migration, famine etc. Output format unchanged.
+- New `js/labels.js`: our names are laid out on every pan/zoom. Each name tries candidate positions and takes the first that collides with nothing (other names, dots, Layers panel, map controls), else the least-overlapping one. Drawn with `text-allow-overlap`, so none are hidden; base-map labels yield. Names pushed away from their dot get a thin leader line.
+- River and area names follow the visible part when the relevant stretch or centre is off screen. Short rivers fall back to the whole river (`riverLabelStretches` in `js/shapes.js` replaces `riverLabelLine`).
+- Tested with a mock LLM at zoom 2–9: all names drawn in every view, no overlaps seen in screenshots. Before, Don/Caucasus/Kuban names vanished at some zooms.
+- Version numbers introduced (1.0.0, then 1.1.0). README screenshot is retaken whenever the README changes (rule in CLAUDE.md). CLAUDE.md: goal generalised, labels step and conventions added.
+- Explainer page "Inside the History Map" published as a private claude.ai artifact (not in the repo).
 
 ### 2026-11-11
 - Added CLAUDE.md (project basics), this NOTE.md, and the project skill `.claude/skills/handoff`.
@@ -37,18 +46,22 @@ Last updated: 2026-11-11
 
 ## Open ideas (offered, not decided)
 
-- Modern vs historical labels: recommended showing the book's name with the modern name small underneath ("Stalingrad" / "(Volgograd)") and hiding the duplicate base-map label. Currently overlaps are resolved only by MapLibre's collision handling.
+- Modern vs historical labels: recommended showing the book's name with the modern name small underneath ("Stalingrad" / "(Volgograd)") and hiding the duplicate base-map label. Currently base-map labels simply give way to ours where they collide.
 - Scene-file workflow + project skill so Claude Code (on a subscription) can write scenes the app opens without an API key.
 - Show per-run cost in dollars next to the token counts.
 - Highlight countries that are themselves acted on ("invaded Poland") using CShapes polygons for the date.
 - Historical city names from Wikidata's dated names; other eras/modes; Chinese language.
 - OpenHistoricalMap (CC0) as a fully open alternative to CShapes.
+- Drawing movements: arrows (curved line + head, coloured by side, dated), later atlas-style wide arrows, front lines, hatched zones. The model would return `movements` referring to listed places; the app computes the geometry. User: "might add in future".
+- Smaller or fine-tuned models: first a test set + scoring script, then try small models, then possibly distil into a local model (Ollama).
+- Replace the war-themed "Load example" passage and generalise the README intro (still says history and social-science books).
+- Show the version number in the app.
 
 ## Known issues and limitations
 
 - CShapes shows state-system borders, not occupation zones or fronts (e.g. Poland exists in 1942). Outlines simplified to ~2 km.
 - Wikidata gives one point per river or region; that's why shapes come from Natural Earth. Lesser-known rivers may match oddly.
-- A river label is shown only near the relevant stretch; zooming into a distant part of the river shows no name.
+- Labels: the layout uses estimated text widths, so a very long name might touch a neighbour. At very low zoom (≈2) names may sit far from their area. Names are recomputed only when a pan/zoom/rotation ends; not tested with a rotated or tilted map.
 - Natural Earth and Wikidata credits show in the attribution even before anything is mapped (harmless).
 - When historical borders fail to load, an error flashes briefly in the status line during a run.
 

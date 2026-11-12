@@ -149,7 +149,10 @@ window.IM = window.IM || {};
       type: 'geojson', data: emptyFC(),
       attribution: 'Places: <a href="https://www.wikidata.org/" target="_blank">Wikidata</a>',
     });
-    map.addSource('river-labels', { type: 'geojson', data: emptyFC() });
+    // Our names, positioned by js/labels.js, and lines joining a name to its
+    // dot when the name had to move away from it.
+    map.addSource('labels', { type: 'geojson', data: emptyFC() });
+    map.addSource('label-leaders', { type: 'geojson', data: emptyFC() });
 
     // Areas (mountain ranges, regions, seas...): light fill + outline,
     // dashed when the outline is only Claude's approximate sketch.
@@ -195,6 +198,11 @@ window.IM = window.IM || {};
       paint: { ...riverCore, 'line-dasharray': [2, 1.5] },
     });
 
+    map.addLayer({
+      id: 'label-leader', type: 'line', source: 'label-leaders',
+      paint: { 'line-color': '#5c4a42', 'line-width': 1, 'line-opacity': 0.75 },
+    });
+
     // Points get a dot; lines and areas only a label.
     map.addLayer({
       id: 'places-dot', type: 'circle', source: 'places', filter: IS_POINT,
@@ -205,43 +213,47 @@ window.IM = window.IM || {};
         'circle-stroke-width': 2,
       },
     });
+    // Names. Their positions are worked out by js/labels.js so that all of them
+    // show and none overlap; here they are drawn exactly there. "Allow overlap"
+    // stops MapLibre from hiding any of them; the base map's labels (lower in
+    // the stack) still avoid them. Fonts and sizes must match STYLE in labels.js.
     const LABEL_TEXT = ['concat', ['to-string', ['get', 'num']], '. ', ['get', 'label']];
     const HALO = { 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 };
+    const PLACED = { 'text-allow-overlap': true, 'text-ignore-placement': false, 'text-max-width': 100 };
 
-    // River names: one label per river, next to the part the passage is about,
-    // rotated to follow the river's direction there (see riverLabelFC).
+    // River names: rotated along the river, beside the line.
     map.addLayer({
-      id: 'river-label', type: 'symbol', source: 'river-labels',
+      id: 'river-label', type: 'symbol', source: 'labels', filter: ['==', ['get', 'style'], 'river'],
       layout: {
+        ...PLACED,
         'text-field': LABEL_TEXT,
         'text-font': ['Noto Sans Italic'],
         'text-size': 14,
-        'text-rotation-alignment': 'map',
+        'text-rotation-alignment': 'viewport',
         'text-rotate': ['get', 'rot'],
-        'text-offset': [0, -0.9],
+        'text-offset': ['case', ['==', ['get', 'side'], 1], ['literal', [0, 0.9]], ['literal', [0, -0.9]]],
       },
       paint: { 'text-color': '#0b3f7a', ...HALO },
     });
-    // Area names in the middle of the area.
+    // Area names inside the area.
     map.addLayer({
-      id: 'area-label', type: 'symbol', source: 'places', filter: ['==', ['get', 'shape'], 'area'],
-      layout: { 'text-field': LABEL_TEXT, 'text-font': ['Noto Sans Bold'], 'text-size': 14, 'text-max-width': 10 },
+      id: 'area-label', type: 'symbol', source: 'labels', filter: ['==', ['get', 'style'], 'area'],
+      layout: { ...PLACED, 'text-field': LABEL_TEXT, 'text-font': ['Noto Sans Bold'], 'text-size': 14 },
       paint: {
         'text-color': ['match', ['get', 'kind'], ['sea', 'lake', 'strait'], '#174a7a', ['mountain'], '#5a3512', '#6b1d14'],
         ...HALO,
       },
     });
-    // Point names next to their dot; may move to another side to avoid overlaps.
+    // Point names next to their dot, on the side chosen by labels.js.
     map.addLayer({
-      id: 'places-label', type: 'symbol', source: 'places', filter: IS_POINT,
+      id: 'places-label', type: 'symbol', source: 'labels', filter: ['==', ['get', 'style'], 'point'],
       layout: {
+        ...PLACED,
         'text-field': LABEL_TEXT,
         'text-font': ['Noto Sans Bold'],
         'text-size': 13,
-        'text-variable-anchor': ['top', 'bottom', 'right', 'left'],
-        'text-radial-offset': 0.75,
-        'text-justify': 'auto',
-        'text-max-width': 10,
+        'text-anchor': ['get', 'anchor'],
+        'text-radial-offset': ['get', 'radial'],
       },
       paint: { 'text-color': '#3a1a14', ...HALO },
     });
@@ -379,39 +391,37 @@ window.IM = window.IM || {};
     return { type: 'FeatureCollection', features };
   }
 
-  // One label point per river: in the middle of a short stretch next to the
-  // part the passage is about, rotated along that stretch. The stretch is a
-  // fixed number of screen pixels, so this is recomputed when the zoom changes.
-  // (Labels placed along the line itself repeat or vanish where the river is
-  // cut into map tiles, so a single rotated label is used instead.)
-  const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * 180 / Math.PI;
-
-  function riverLabelFC() {
-    const { riverLabelPx, riverLabelGapPx } = IM.config.shapes;
-    const features = [];
+  // Names: positioned by js/labels.js for the current view, so they are
+  // recomputed after every pan and zoom. (A single rotated name per river is
+  // used because names placed along the line itself repeat or vanish where the
+  // river is cut into map tiles.)
+  function layoutLabels() {
+    const src = map.getSource('labels');
+    if (!src) return;
+    const items = [];
     resolved.forEach((r, idx) => {
-      if (!r.geom || r.place.shape !== 'line' || !r.anchor) return;
-      const kmPerPx = 40075 * Math.cos(r.anchor[1] * Math.PI / 180) / (512 * 2 ** map.getZoom());
-      const pts = IM.shapes.riverLabelLine(r.geom, r.anchor, riverLabelPx * kmPerPx, riverLabelGapPx * kmPerPx);
-      if (!pts) return;
-      const a = pts[0], b = pts[pts.length - 1];
-      const mid = pts[Math.floor(pts.length / 2)];
-      // Screen angle of the stretch (clockwise from east), kept upright.
-      let rot = Math.atan2(-(mercY(b[1]) - mercY(a[1])), b[0] - a[0]) * 180 / Math.PI;
-      if (rot > 90) rot -= 180;
-      if (rot <= -90) rot += 180;
-      features.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: mid },
-        properties: { idx, num: idx + 1, label: r.place.mention, rot },
+      if (!r.anchor) return;
+      const shape = r.geom ? r.place.shape : 'point';
+      items.push({
+        idx, num: idx + 1, label: r.place.mention, kind: r.place.kind,
+        style: shape === 'line' ? 'river' : shape,
+        text: `${idx + 1}. ${r.place.mention}`,
+        anchor: r.anchor, geom: r.geom,
       });
     });
-    return { type: 'FeatureCollection', features };
+    // Names must not hide under the Layers panel or the map's buttons and
+    // attribution line.
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const obstacles = [els.layers, ...map.getContainer().querySelectorAll('.maplibregl-ctrl')]
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.width && r.height)
+      .map((r) => ({ x0: r.left - mapRect.left, y0: r.top - mapRect.top, x1: r.right - mapRect.left, y1: r.bottom - mapRect.top }));
+    const { labels, leaders } = IM.labels.layout(map, items, obstacles);
+    src.setData(labels);
+    map.getSource('label-leaders').setData(leaders);
   }
-  map.on('zoomend', () => {
-    const src = map.getSource('river-labels');
-    if (src && resolved.length) src.setData(riverLabelFC());
-  });
+  map.on('moveend', layoutLabels);
+  map.on('resize', layoutLabels);
 
   function updateMap({ fit } = { fit: false }) {
     const src = map.getSource('places');
@@ -419,7 +429,7 @@ window.IM = window.IM || {};
     const labels = labelFC();
     src.setData(labels);
     map.getSource('place-shapes').setData(shapeFC());
-    map.getSource('river-labels').setData(riverLabelFC());
+    layoutLabels();
     if (fit && labels.features.length) {
       // Fit to label points, not whole shapes: a river like the Volga would
       // otherwise zoom the map out to half a continent.
