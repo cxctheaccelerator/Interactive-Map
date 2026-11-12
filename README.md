@@ -1,6 +1,6 @@
 # Interactive History Map
 
-**Version 1.0.1** · see [Versions](#versions)
+**Version 1.0.2** · see [Versions](#versions)
 
 History and social-science books often assume you know the geography they discuss. This app turns a passage of text into a map: paste a paragraph, and it marks the places the passage mentions, highlights the rivers, mountain ranges and regions involved, and shows the borders of the time.
 
@@ -121,6 +121,7 @@ Version numbers follow the pattern MAJOR.MINOR.PATCH:
 - **MINOR** (1.**x**.0): larger additions, such as new kinds of things drawn on the map or more maps and eras.
 - **MAJOR** (**x**.0.0): much larger changes, such as running on other platforms.
 
+- **1.0.2** (2026-11-12): new feature: when the name of a river, region, mountain range or other area has to sit away from its shape, a small line segment now connects the name to the nearest point of the shape (as city names already were connected to their dot).
 - **1.0.1** (2026-11-12): place names on the map are laid out so that all of them show and none overlap; a name that has to move away from its dot is joined to it by a thin line. River and area names follow the part that is on screen, and short rivers always get a name. The model instructions are now general (any kind of text, not only history or wars).
 - **1.0.0** (2026-11-11): first release. Places, rivers, mountain ranges and regions mapped from a passage; Wikidata lookup; Natural Earth shapes; historical borders (CShapes, 1886–2019) with the period inferred from the text; terrain base map; language models from Anthropic, OpenAI, Google Gemini and OpenAI-compatible services.
 

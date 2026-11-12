@@ -29,6 +29,7 @@ window.IM = window.IM || {};
   const ANCHORS = ['top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right'];
   const BASELINE = 7 / 24;    // MapLibre's vertical shift for radially offset text (em)
   const RIVER_OFFSET = 0.9;   // river names sit this far beside the line (em); see 'text-offset' in app.js
+  const LEADER_MIN = 8;       // a river or area name further than this from its shape (px) gets a leader line
 
   // ---------- measuring and boxes (screen pixels) ----------
   const ctx = document.createElement('canvas').getContext('2d');
@@ -101,6 +102,51 @@ window.IM = window.IM || {};
     const len2 = dx * dx + dy * dy;
     const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
     return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+  }
+
+  // Screen-space lines of a geometry: river lines, or area outlines.
+  function screenLines(geom, map) {
+    const c = geom.coordinates;
+    const lines = geom.type === 'LineString' ? [c]
+      : geom.type === 'MultiLineString' ? c
+      : outerRings(geom);
+    return lines.map((l) => l.map((v) => map.project(v)));
+  }
+
+  // Nearest point to p on a set of screen lines.
+  function nearestOnLines(lines, p) {
+    let best = null, bestD = Infinity;
+    for (const l of lines) {
+      for (let k = 1; k < l.length; k++) {
+        const a = l[k - 1], b = l[k];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len2 = dx * dx + dy * dy;
+        const t = len2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) : 0;
+        const q = { x: a.x + t * dx, y: a.y + t * dy };
+        const d = Math.hypot(p.x - q.x, p.y - q.y);
+        if (d < bestD) { bestD = d; best = q; }
+      }
+    }
+    return best;
+  }
+
+  // Point of a (possibly rotated) name nearest to q. c: centre, th: angle.
+  function nearestOnText(c, th, m, q) {
+    const cos = Math.cos(th), sin = Math.sin(th);
+    const dx = q.x - c.x, dy = q.y - c.y;
+    const u = Math.max(-m.w / 2, Math.min(m.w / 2, dx * cos + dy * sin));   // along the text
+    const v = Math.max(-m.h / 2, Math.min(m.h / 2, -dx * sin + dy * cos));  // across it
+    return { x: c.x + u * cos - v * sin, y: c.y + u * sin + v * cos };
+  }
+
+  // Leader line from a river or area name to the nearest point of its shape,
+  // or null if the name already sits on or right next to the shape.
+  function shapeLeader(c, th, m, lines) {
+    let q = nearestOnLines(lines, c);
+    if (!q) return null;
+    const s = nearestOnText(c, th, m, q);
+    q = nearestOnLines(lines, s);           // refine: nearest to the name's edge, not its centre
+    return Math.hypot(q.x - s.x, q.y - s.y) > LEADER_MIN ? [s, q] : null;
   }
 
   // The on-screen vertex of a line nearest the middle of the screen.
@@ -208,16 +254,16 @@ window.IM = window.IM || {};
       for (const side of [-1, 1]) { // -1: beside the line on one side, 1: the other
         const off = side * RIVER_OFFSET * m.s;
         const C = { x: M.x - Math.sin(th) * off, y: M.y + Math.cos(th) * off };
-        out.push({ boxes: rotatedBoxes(C, th, m), at: M, rot, side });
+        out.push({ boxes: rotatedBoxes(C, th, m), at: M, rot, side, center: C, th });
       }
     }
     return out;
   }
 
-  function areaCandidates(item, map, m, W, H) {
+  function areaCandidates(item, map, m, W, H, rings) {
     let P = map.project(item.anchor);
     if (!inView(P, W, H, 10)) {
-      P = visibleInside(outerRings(item.geom).map((r) => r.map((c) => map.project(c))), W, H);
+      P = visibleInside(rings, W, H);
       if (!P) return [];
     }
     const offsets = [[0, 0]];
@@ -227,7 +273,7 @@ window.IM = window.IM || {};
     }
     return offsets.map(([dx, dy]) => {
       const x = P.x + dx, y = P.y + dy;
-      return { boxes: [box(x - m.w / 2, y - m.h / 2, x + m.w / 2, y + m.h / 2)], at: { x, y } };
+      return { boxes: [box(x - m.w / 2, y - m.h / 2, x + m.w / 2, y + m.h / 2)], at: { x, y }, center: { x, y }, th: 0 };
     });
   }
 
@@ -252,14 +298,13 @@ window.IM = window.IM || {};
       for (const it of items) {
         if (it.style !== style) continue;
         const m = measure(it.text, style);
-        let cands;
+        let cands, lines = null;
         if (style === 'point') {
           if (!inView(dots.get(it.idx), W, H)) continue; // dot off screen: no name needed
           cands = pointCandidates(dots.get(it.idx), m);
-        } else if (style === 'river') {
-          cands = riverCandidates(it, map, m, W, H);
         } else {
-          cands = areaCandidates(it, map, m, W, H);
+          lines = screenLines(it.geom, map);
+          cands = style === 'river' ? riverCandidates(it, map, m, W, H) : areaCandidates(it, map, m, W, H, lines);
         }
         if (!cands.length) continue;
 
@@ -280,11 +325,16 @@ window.IM = window.IM || {};
               leaders.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [lngLat(S), lngLat(Q)] }, properties: { idx: it.idx } });
             }
           }
-        } else if (style === 'river') {
-          labels.push({ type: 'Feature', geometry: { type: 'Point', coordinates: lngLat(c.at) },
-            properties: { ...props, rot: c.rot, side: c.side } });
         } else {
-          labels.push({ type: 'Feature', geometry: { type: 'Point', coordinates: lngLat(c.at) }, properties: props });
+          labels.push({ type: 'Feature', geometry: { type: 'Point', coordinates: lngLat(c.at) },
+            properties: style === 'river' ? { ...props, rot: c.rot, side: c.side } : props });
+          // Name away from its river or area: connect it to the nearest point
+          // of the shape. An area name inside its area needs no line.
+          const onArea = style === 'area' && lines.some((r) => pointInRing(c.center, r));
+          const seg = onArea ? null : shapeLeader(c.center, c.th, m, lines);
+          if (seg) {
+            leaders.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: seg.map(lngLat) }, properties: { idx: it.idx } });
+          }
         }
       }
     }

@@ -6,13 +6,18 @@ Last updated: 2026-11-12
 
 ## Current status
 
-- Version 1.0.1 (README top line + "Versions" section).
-- Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown. All our names are always shown, without overlaps.
+- Version 1.0.2 (README top line + "Versions" section).
+- Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown. All our names are always shown, without overlaps; names that sit away from their dot or shape are connected to it by a short line.
 - LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only. The generalised prompt (1.0.1) has not been run against a real model yet.
-- Repository: on GitHub, branch `main`, last commit "screenshot updated" (version 1.0.0). The 1.0.1 changes (label layout, prompt, CLAUDE.md, README, NOTE.md, screenshot) are uncommitted; the user commits and pushes by hand.
+- Repository: on GitHub, branch `main`; 1.0.1 is committed and pushed (two commits, "v1.0.1 …" and "1.0.1"). The 1.0.2 changes (`js/labels.js`, README, NOTE.md, CLAUDE.md, screenshot) are uncommitted; the user commits and pushes by hand.
 - Data: `data/cshapes.js` and `data/naturalearth.js` are committed; raw data (~50 MB) is git-ignored and rebuilt with `python3 tools/download_data.py`.
 
 ## Recent updates
+
+### 2026-11-12 — version 1.0.2
+- New feature: river and area names (regions, ranges, seas…) that sit away from their shape get a small line to the nearest point of the shape, like city names to their dot. Area names inside their area and river names right beside the river get none. (`shapeLeader` in `js/labels.js`.)
+- Tested with a mock LLM, zoom 2–9: lines only where names had to move away (Kuban, Caucasus at zoom 2); none elsewhere.
+- Version rule set by the user: PATCH = fixes and small improvements, MINOR = larger additions (new things drawn, more maps), MAJOR = much larger changes (other platforms). Recorded in README and CLAUDE.md.
 
 ### 2026-11-12 — version 1.0.1
 - Prompt (`js/config.js`): no longer about history books or wars; examples changed to trade, migration, famine etc. Output format unchanged.
