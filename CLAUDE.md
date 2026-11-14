@@ -32,8 +32,9 @@ js/labels.js            label layout: all names shown, none overlapping, recompu
 js/borders.js           CShapes layer, lazy-loaded
 js/basemap.js           base map style and layer toggles
 js/app.js               UI, settings, pipeline, map layers
-data/cshapes.js         generated, ~6 MB (CC BY-NC-SA 4.0, see data/LICENSE-CShapes.txt)
-data/naturalearth.js    generated, ~4.6 MB (public domain)
+data/cshapes.js         built locally, git-ignored, full detail, ~26 MB (CC BY-NC-SA 4.0, see data/LICENSE-CShapes.txt)
+data/naturalearth.js    built locally, git-ignored, full detail, ~14 MB (public domain)
+data/*.info.js          tiny markers written by the builders; index.html loads them so the app can show a "data not built" note
 data/raw/               raw downloads, git-ignored
 tools/download_data.py  downloads raw data (asks first) and runs both builders
 tools/build_cshapes.py, tools/build_naturalearth.py   stdlib-only preprocessors
@@ -46,8 +47,8 @@ docs/screenshot.png     README screenshot
 - **Uniform across LLM providers.** Instructions and output format are defined once in `js/config.js` and sent identically to every provider. Provider-specific code stays inside its adapter in `js/llm.js`. Every answer goes through `js/validate.js`. When the schema changes, update `outputSchema`, `systemPrompt` and `validate.js` together.
 - **Model IDs:** only Claude models are hard-coded as suggestions. Other providers' model names come from the user or "List models"; don't hard-code them.
 - **External services:** MapLibre GL JS 5.6.0 (jsDelivr, pinned), OpenFreeMap tiles, AWS Terrarium elevation tiles, Wikidata API and SPARQL. All allow browser (CORS) requests. Wikidata: keep ≤ 2 parallel requests and honour `Retry-After` on 429.
-- **Data rebuilds:** keep `tools/build_naturalearth.py`'s `normalise()` and `js/shapes.js`'s `normaliseName()` identical. Natural Earth is pinned to v5.1.2.
-- **Licences:** code MIT; `data/cshapes.js` stays CC BY-NC-SA 4.0. Keep the credits in the README and the map attribution.
+- **Data rebuilds:** keep `tools/build_naturalearth.py`'s `normalise()` and `js/shapes.js`'s `normaliseName()` identical. Natural Earth is pinned to v5.1.2. Both builders keep the original detail by default (`--tolerance 0`); the user found simplified outlines too coarse, so don't simplify unless asked. The built files are not in the repo: users run `python3 tools/download_data.py` themselves.
+- **Licences:** code MIT; `data/cshapes.js` (built locally, not distributed) stays CC BY-NC-SA 4.0. Keep the credits in the README and the map attribution.
 - **No secrets in the repo:** API keys live only in the user's browser.
 - **Label styles:** fonts and sizes of the label layers in `js/app.js` must match `STYLE` in `js/labels.js` (used to measure text for the layout).
 - **Prompt scope:** keep `systemPrompt` general (any kind of text, not only history or military topics).

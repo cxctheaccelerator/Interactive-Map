@@ -311,10 +311,12 @@ window.IM = window.IM || {};
     try {
       applyHistDate(hist.year.value);
       await IM.borders.setVisible(on);
+      if (on) setDataMissing('cshapes', false);
     } catch (e) {
       hist.on.checked = false;
       hist.controls.hidden = true;
       syncCountryLabels();
+      if (e.dataMissing) setDataMissing(e.dataMissing, true);
       setStatus(e.message, true);
     }
   }
@@ -342,9 +344,11 @@ window.IM = window.IM || {};
     label.textContent = `Period: ${period.label}`;
     const sub = document.createElement('div');
     sub.className = 'p-note';
-    sub.textContent = inRange
-      ? `Borders shown for ${when}. Change the date in the Layers panel.`
-      : `Borders not shown: ${period.year} is outside the CShapes range (${IM.borders.MIN_YEAR}–${IM.borders.MAX_YEAR}).`;
+    const noData = 'Borders not shown: the border data has not been built (see the note at the top).';
+    const shown = `Borders shown for ${when}. Change the date in the Layers panel.`;
+    sub.textContent = !inRange
+      ? `Borders not shown: ${period.year} is outside the CShapes range (${IM.borders.MIN_YEAR}–${IM.borders.MAX_YEAR}).`
+      : missingData.has('cshapes') ? noData : shown;
     box.append(label, sub);
     box.hidden = false;
 
@@ -354,7 +358,7 @@ window.IM = window.IM || {};
     if (inRange) {
       hist.month.value = month || 7;   // no month given: use mid-year
       applyHistDate(period.year);
-      setHistOn(true);
+      setHistOn(true).then(() => { sub.textContent = missingData.has('cshapes') ? noData : shown; });
     }
   }
 
@@ -574,6 +578,29 @@ window.IM = window.IM || {};
     });
   }
 
+  // ---------- missing map data ----------
+  // Each user builds the data files (python3 tools/download_data.py). The
+  // builders' tiny marker files (data/*.info.js) say at start-up whether that
+  // has happened; a data file that fails to load later is added too, and one
+  // that loads after all (e.g. built before the markers existed) is removed.
+  const DATA_PARTS = {
+    cshapes: 'historical borders',
+    naturalearth: 'the shapes of rivers, mountain ranges, regions, seas and lakes',
+  };
+  const built = (window.IM_DATA && IM_DATA.built) || {};
+  const missingData = new Set(Object.keys(DATA_PARTS).filter((k) => !built[k]));
+  function setDataMissing(part, missing) {
+    if (part && missing) missingData.add(part);
+    if (part && !missing) missingData.delete(part);
+    const box = $('data-notice');
+    box.hidden = !missingData.size;
+    if (!missingData.size) return;
+    const what = [...missingData].map((k) => DATA_PARTS[k]).join(' and ');
+    box.innerHTML = '<strong>Map data not built yet.</strong> Without it, ' + what +
+      ' cannot be shown. In the project folder, run <code>python3 tools/download_data.py</code>, then reload this page.';
+  }
+  setDataMissing();
+
   // ---------- status ----------
   function setStatus(msg, isError) {
     els.status.textContent = msg;
@@ -614,6 +641,8 @@ window.IM = window.IM || {};
 
       setStatus('Finding shapes for rivers, mountains and regions…');
       await IM.shapes.attachAll(resolved);
+      if (IM.shapes.dataFailed()) setDataMissing('naturalearth', true);
+      else if (IM.shapes.dataLoaded()) setDataMissing('naturalearth', false);
 
       renderResults();
       updateMap({ fit: true });

@@ -1,6 +1,11 @@
 # Raw downloads (~50 MB); recreate with: python3 tools/download_data.py
 data/raw/
 
+# Built data: users build it themselves with python3 tools/download_data.py
+data/cshapes.js
+data/naturalearth.js
+data/*.info.js
+
 # Python / editor / OS clutter
 __pycache__/
 *.pyc

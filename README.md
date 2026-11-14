@@ -1,6 +1,6 @@
 # Interactive History Map
 
-**Version 1.0.2** · see [Versions](#versions)
+**Version 1.0.3** · see [Versions](#versions)
 
 History and social-science books often assume you know the geography they discuss. This app turns a passage of text into a map: paste a paragraph, and it marks the places the passage mentions, highlights the rivers, mountain ranges and regions involved, and shows the borders of the time.
 
@@ -17,9 +17,10 @@ History and social-science books often assume you know the geography they discus
 ## Quick start
 
 1. **Get the code:** clone or download this repository.
-2. **Open `index.html`** in a recent browser (Chrome, Edge, Firefox or Safari). No installation, build step or server is needed. An internet connection is needed for the map tiles, Wikidata and the language model.
-3. **Choose a language model:** open **Settings** in the sidebar, pick a **provider**, paste your API key and choose a **model** (see [Language models](#language-models) below).
-4. **Try it:** click **Load example**, then **Map places**.
+2. **Build the map data** (once): in the project folder, run `python3 tools/download_data.py`. It downloads the raw border and geography data (about 50 MB) and builds the app's data files. See [Getting the data](#getting-the-data).
+3. **Open `index.html`** in a recent browser (Chrome, Edge, Firefox or Safari). No installation or server is needed. An internet connection is needed for the map tiles, Wikidata and the language model.
+4. **Choose a language model:** open **Settings** in the sidebar, pick a **provider**, paste your API key and choose a **model** (see [Language models](#language-models) below).
+5. **Try it:** click **Load example**, then **Map places**.
 
 ## Language models
 
@@ -81,14 +82,14 @@ js/shapes.js          matching rivers, ranges and regions to Natural Earth shape
 js/labels.js          positions the names so that all show and none overlap
 js/borders.js         historical borders layer (CShapes)
 js/app.js             user interface and map drawing
-data/cshapes.js       processed CShapes borders (generated)
-data/naturalearth.js  processed Natural Earth shapes (generated)
-tools/                scripts to download and rebuild the data files
+data/cshapes.js       processed CShapes borders (built by you, not in git)
+data/naturalearth.js  processed Natural Earth shapes (built by you, not in git)
+tools/                scripts to download and build the data files
 ```
 
-## Rebuilding the data (optional)
+## Getting the data
 
-The processed data files in `data/` are included, so **you don't need this to use the app**. Only do it if you want to change how the data is processed, or update it.
+The map data is not included in the repository. You download and build it once on your own computer. Without it the app still runs, but historical borders are unavailable and rivers, mountain ranges and regions are only drawn as the model's rough sketches. Until the data is built, a note at the top of the sidebar says so.
 
 Requirements: Python 3.8 or newer. No extra packages are needed.
 
@@ -100,16 +101,18 @@ This script:
 
 1. Lists the raw files it will download (about 50 MB in total) and asks for confirmation. Nothing is downloaded before you answer `y`.
 2. Downloads them into `data/raw/`, which is excluded from git. It only downloads files that are missing.
-3. Runs `tools/build_cshapes.py` and `tools/build_naturalearth.py`, which simplify the raw data and write `data/cshapes.js` and `data/naturalearth.js`.
+3. Runs `tools/build_cshapes.py` and `tools/build_naturalearth.py`, which convert the raw data, keeping its full detail, and write `data/cshapes.js` and `data/naturalearth.js` (plus two tiny `.info.js` files the app uses to check that the data is there).
 
-Options: `--yes` skips the question, `--force` downloads again, `--no-build` only downloads. The build scripts can also be run on their own, for example `python3 tools/build_cshapes.py --tolerance 0.01` for more detailed borders (and a larger file).
+You only need to run it again to update the data or change how it is processed.
+
+Options: `--yes` skips the question, `--force` downloads again, `--no-build` only downloads. The build scripts can also be run on their own. To make the files smaller at the cost of detail, give a simplification tolerance in degrees, for example `python3 tools/build_cshapes.py --tolerance 0.02` (about 2 km).
 
 The data files are `.js` rather than `.json` so that the app also works when `index.html` is opened directly from disk, where browsers block loading local JSON files.
 
 ## Known limitations
 
 - Historical borders follow the CShapes state system. They show recognised states and colonies, not wartime occupation zones or front lines. For example, Poland still appears in 1942.
-- Borders are simplified to about 2 km, which is coarse when zoomed in on a single battlefield.
+- Historical borders are drawn at the full detail of CShapes, which is itself less detailed than modern maps. Zoomed in close, a border may not follow its river or ridge exactly.
 - Modern place names come from today's maps, for example "Volgograd" near the book's "Stalingrad". You can switch them off in the Layers panel.
 - Wikidata limits how many requests anonymous users can make. Very long passages may pause briefly while the app waits and retries.
 
@@ -121,6 +124,7 @@ Version numbers follow the pattern MAJOR.MINOR.PATCH:
 - **MINOR** (1.**x**.0): larger additions, such as new kinds of things drawn on the map or more maps and eras.
 - **MAJOR** (**x**.0.0): much larger changes, such as running on other platforms.
 
+- **1.0.3** (2026-11-13): historical borders, rivers, mountain ranges, regions, seas and lakes are now drawn at the full detail of the original data instead of simplified outlines, so rivers follow their real bends and borders look smoother when zoomed in. The built data files are no longer included in the repository: run `python3 tools/download_data.py` once to download and build them. Until then, a note in the sidebar says what is missing.
 - **1.0.2** (2026-11-12): new feature: when the name of a river, region, mountain range or other area has to sit away from its shape, a small line segment now connects the name to the nearest point of the shape (as city names already were connected to their dot).
 - **1.0.1** (2026-11-12): place names on the map are laid out so that all of them show and none overlap; a name that has to move away from its dot is joined to it by a thin line. River and area names follow the part that is on screen, and short rivers always get a name. The model instructions are now general (any kind of text, not only history or wars).
 - **1.0.0** (2026-11-11): first release. Places, rivers, mountain ranges and regions mapped from a passage; Wikidata lookup; Natural Earth shapes; historical borders (CShapes, 1886–2019) with the period inferred from the text; terrain base map; language models from Anthropic, OpenAI, Google Gemini and OpenAI-compatible services.
@@ -144,6 +148,6 @@ The map shows these credits in its attribution line (bottom right). The CShapes 
 
 The code in this project is released under the **MIT License**. See [LICENSE](LICENSE). You can use, change and share it freely, including commercially, as long as you keep the copyright notice.
 
-**One exception:** `data/cshapes.js` is derived from the CShapes 2.0 dataset and stays under its original license, **CC BY-NC-SA 4.0**: non-commercial use only, credit the CShapes authors, and share adaptations under the same license. See [data/LICENSE-CShapes.txt](data/LICENSE-CShapes.txt). If you need the project without that restriction, delete `data/cshapes.js`. Everything else still works; only the historical borders become unavailable.
+**The map data is not part of this repository.** `tools/download_data.py` downloads it from its sources, and the files it builds keep their original licenses. `data/cshapes.js` is derived from the CShapes 2.0 dataset and is under **CC BY-NC-SA 4.0**: non-commercial use only, credit the CShapes authors, and share adaptations under the same license. See [data/LICENSE-CShapes.txt](data/LICENSE-CShapes.txt). If you need to avoid that restriction, don't build or share `data/cshapes.js`. Everything else still works; only the historical borders become unavailable.
 
 `data/naturalearth.js` comes from Natural Earth and is public domain. Other third-party data and software keep their own licenses, listed under [Credits and data sources](#credits-and-data-sources).

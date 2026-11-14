@@ -13,6 +13,7 @@ window.IM = window.IM || {};
   const cfg = IM.config.shapes;
   let index = null;      // { byKey: Map<nameKey, feature[]>, byQid: Map<qid, feature[]> }
   let loading = null;
+  let dataFailed = false;  // data/naturalearth.js could not be loaded
 
   // Must stay identical to normalise() in tools/build_naturalearth.py.
   const STOPWORDS = new Set(['the', 'river', 'r', 'mountains', 'mountain', 'mts', 'mt', 'range', 'hills']);
@@ -26,7 +27,7 @@ window.IM = window.IM || {};
       const s = document.createElement('script');
       s.src = src;
       s.onload = resolve;
-      s.onerror = () => reject(new Error(`Could not load ${src}. Run tools/build_naturalearth.py first.`));
+      s.onerror = () => reject(new Error(`Could not load ${src}. Run python3 tools/download_data.py first.`));
       document.head.appendChild(s);
     });
   }
@@ -210,11 +211,12 @@ window.IM = window.IM || {};
 
   async function attachAll(resolved) {
     if (resolved.some((r) => r.place.shape === 'line' || r.place.shape === 'area')) {
-      try { await ensureIndex(); } catch (e) { console.warn(e); } // fall back to outlines
+      try { await ensureIndex(); } catch (e) { console.warn(e); dataFailed = true; } // fall back to outlines
     }
     resolved.forEach(attach);
     return resolved;
   }
 
-  IM.shapes = { attachAll, attach, riverLabelStretches, normaliseName };
+  IM.shapes = { attachAll, attach, riverLabelStretches, normaliseName,
+    dataFailed: () => dataFailed, dataLoaded: () => !!index };
 })();

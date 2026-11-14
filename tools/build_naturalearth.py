@@ -2,11 +2,12 @@
 """Convert Natural Earth physical-geography data into a compact file the app
 uses to draw rivers, mountain ranges, regions, seas and lakes as shapes.
 
-    python3 tools/build_naturalearth.py [--tolerance 0.01]
+    python3 tools/build_naturalearth.py [--tolerance 0.01]   # default: full detail
 
 Input:  data/raw/naturalearth/*.geojson  (Natural Earth 1:10m, public domain,
         https://github.com/nvkelso/natural-earth-vector)
 Output: data/naturalearth.js             (sets window.IM_DATA.naturalearth)
+        data/naturalearth.info.js        (tiny marker: the data has been built)
 
 Each output feature:
   q  Wikidata id or null      k  "line" or "area"     c  Natural Earth class
@@ -16,6 +17,7 @@ River segments with the same name that touch each other are merged into one
 feature. The app matches a place by Wikidata id first, then by name + distance.
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -23,7 +25,7 @@ import sys
 import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_cshapes import polylabel, ring_area, simplify_dp, simplify_ring  # noqa: E402
+from build_cshapes import label_point, ring_area, simplify_line, simplify_ring, write_info  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'data', 'raw', 'naturalearth')
@@ -186,7 +188,7 @@ def build_rivers(tol):
         for group in merge_river_segments(items):
             lines = []
             for line in merge_lines([l for it in group for l in it['lines']]):
-                s = [[round(x, 3), round(y, 3)] for x, y in simplify_dp(line, tol)]
+                s = simplify_line(line, tol)
                 if len(s) >= 2:
                     lines.append(s)
             if not lines:
@@ -225,7 +227,7 @@ def build_areas(tol):
             out.append({
                 'q': prop(p, 'wikidataid'), 'k': 'area', 'c': prop(p, 'featurecla'), 'n': keys,
                 'b': bbox_of([pt for pl in polys for pt in pl[0]]),
-                'l': polylabel(main_poly),
+                'l': label_point(main_poly),
                 'g': ({'type': 'Polygon', 'coordinates': polys[0]} if len(polys) == 1
                       else {'type': 'MultiPolygon', 'coordinates': polys}),
             })
@@ -234,8 +236,9 @@ def build_areas(tol):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--tolerance', type=float, default=0.01,
-                    help='simplification tolerance in degrees (default 0.01 = about 1 km)')
+    ap.add_argument('--tolerance', type=float, default=0,
+                    help='simplification tolerance in degrees, e.g. 0.01 = about 1 km '
+                         '(default 0: keep the original shapes at full detail)')
     args = ap.parse_args()
     tol = args.tolerance
 
@@ -249,6 +252,8 @@ def main():
         f.write('window.IM_DATA.naturalearth = ')
         f.write(payload)
         f.write(';\n')
+    write_info('naturalearth', built=datetime.date.today().isoformat(), tolerance=tol,
+               features=len(out))
     n_q = sum(1 for o in out if o['q'])
     print(f"{len(out)} features ({sum(o['k'] == 'line' for o in out)} lines, "
           f"{sum(o['k'] == 'area' for o in out)} areas, {n_q} with Wikidata id), "

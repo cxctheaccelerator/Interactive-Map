@@ -14,6 +14,8 @@
       <p class="subtitle">Paste a passage. The places it mentions get pinned on the map.</p>
     </header>
 
+    <div id="data-notice" role="alert" hidden></div>
+
     <details id="settings">
       <summary>Settings</summary>
       <label for="provider">Provider</label>
@@ -83,6 +85,9 @@
   <script src="js/shapes.js"></script>
   <script src="js/labels.js"></script>
   <script src="js/borders.js"></script>
+  <!-- Tiny markers written by the data builders; missing until python3 tools/download_data.py has run. -->
+  <script src="data/cshapes.info.js"></script>
+  <script src="data/naturalearth.info.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

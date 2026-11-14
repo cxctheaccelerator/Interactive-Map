@@ -1,5 +1,5 @@
 // Historical borders layer from CShapes 2.0 (1886-2019), shown for one date.
-// The data file (data/cshapes.js, ~6 MB) is loaded the first time the layer is
+// The data file (data/cshapes.js, ~26 MB) is loaded the first time the layer is
 // switched on.
 window.IM = window.IM || {};
 
@@ -19,7 +19,11 @@ window.IM = window.IM || {};
       const s = document.createElement('script');
       s.src = src;
       s.onload = resolve;
-      s.onerror = () => reject(new Error(`Could not load ${src}. Run tools/build_cshapes.py first.`));
+      s.onerror = () => {
+        const e = new Error(`Could not load ${src}. Run python3 tools/download_data.py first.`);
+        e.dataMissing = 'cshapes';
+        reject(e);
+      };
       document.head.appendChild(s);
     });
   }

@@ -88,6 +88,16 @@ button.primary {
 button.primary:disabled { opacity: 0.6; cursor: progress; }
 button.link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 4px; }
 
+#data-notice {
+  border-left: 3px solid var(--warn);
+  background: #fdf3e3;
+  padding: 8px 10px;
+  margin: 0 0 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+}
+#data-notice code { font-size: 12px; background: var(--panel); padding: 1px 4px; border-radius: 3px; user-select: all; }
+
 #status { margin: 12px 0 6px; color: var(--muted); min-height: 1.4em; white-space: pre-line; }
 #status.error { color: var(--accent); }
 

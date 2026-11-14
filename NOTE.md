@@ -2,17 +2,25 @@
 
 Maintained by the `handoff` skill (`.claude/skills/handoff`). Target length: about 100 lines. Newest updates first.
 
-Last updated: 2026-11-12
+Last updated: 2026-11-13
 
 ## Current status
 
-- Version 1.0.2 (README top line + "Versions" section).
+- Version 1.0.3 (README top line + "Versions" section).
 - Working app: paste a passage → relevant places marked, rivers/ranges/regions drawn as shapes, period inferred, historical borders shown. All our names are always shown, without overlaps; names that sit away from their dot or shape are connected to it by a short line.
 - LLM providers: Anthropic (default, Claude Opus 5.5), OpenAI, Google Gemini, OpenAI-compatible. Only Anthropic has run against the real API (user tested it). The other three were tested against a local mock server only. The generalised prompt (1.0.1) has not been run against a real model yet.
-- Repository: on GitHub, branch `main`; 1.0.1 is committed and pushed (two commits, "v1.0.1 …" and "1.0.1"). The 1.0.2 changes (`js/labels.js`, README, NOTE.md, CLAUDE.md, screenshot) are uncommitted; the user commits and pushes by hand.
-- Data: `data/cshapes.js` and `data/naturalearth.js` are committed; raw data (~50 MB) is git-ignored and rebuilt with `python3 tools/download_data.py`.
+- Repository: on GitHub, branch `main`; 1.0.2 is committed and pushed. The 1.0.3 changes (build scripts + marker files, data-missing note in `index.html`/`css`/`js/app.js`, `.gitignore` + data files removed from git, messages in `js/borders.js`/`js/shapes.js`, `tools/download_data.py` help, README, NOTE.md, CLAUDE.md, screenshot) are uncommitted; the user commits and pushes by hand.
+- Data: `data/cshapes.js` (~26 MB) and `data/naturalearth.js` (~14 MB), full detail, and the raw data (~50 MB) are all git-ignored; users download and build them with `python3 tools/download_data.py`. The built files were removed from the git index (`git rm --cached`, staged), so the next commit deletes them from GitHub; older copies remain in history.
 
 ## Recent updates
+
+### 2026-11-13 — version 1.0.3
+- User found the simplified borders too coarse. Both builders now keep the original data by default (`--tolerance 0`: every point, full precision, only exact repeats dropped); `--tolerance` still simplifies on request. Label points are computed on a lightly simplified copy for speed (`label_point` in `tools/build_cshapes.py`, shared helpers `simplify_line`/`simplify_ring`).
+- Sizes: cshapes.js 6.4 → 25.9 MB (1.17 M points), naturalearth.js 4.6 → 14.4 MB.
+- Measured in headless Chrome: borders on ≈1.2 → 1.55 s (once); date change, pan, zoom unchanged; Natural Earth load ≈0.05 → 0.1 s; label layout 1–2 ms per move; JS memory ≈155 → 310 MB. Rivers follow their bends; borders smoother but limited by CShapes' own detail.
+- User's decision: built data files are no longer in the repository (git-ignored, `git rm --cached`); users build them. README Quick start gains a build step, "Rebuilding the data (optional)" became "Getting the data", licence section says the data isn't part of the repo. Missing-data messages now say `Run python3 tools/download_data.py first.`
+- "Map data not built yet" note at the top of the sidebar: builders write tiny markers `data/cshapes.info.js` / `data/naturalearth.info.js` (git-ignored) that `index.html` loads; a missing marker shows the note at start-up, before any API cost. A data file that fails to load adds to the note (`e.dataMissing` in `js/borders.js`, `IM.shapes.dataFailed()`); one that loads although its marker is missing clears it. The period box then says "Borders not shown: the border data has not been built". Tested in headless Chrome: built / nothing / markers only / data without markers.
+- Explained to the user why a build step is still needed: `file://` blocks fetch of local JSON (so data must be `.js`), plus CShapes date fields/label points/capitals and Natural Earth merging, river joining and name keys done once instead of on every load.
 
 ### 2026-11-12 — version 1.0.2
 - New feature: river and area names (regions, ranges, seas…) that sit away from their shape get a small line to the nearest point of the shape, like city names to their dot. Area names inside their area and river names right beside the river get none. (`shapeLeader` in `js/labels.js`.)
@@ -64,11 +72,11 @@ Last updated: 2026-11-12
 
 ## Known issues and limitations
 
-- CShapes shows state-system borders, not occupation zones or fronts (e.g. Poland exists in 1942). Outlines simplified to ~2 km.
+- CShapes shows state-system borders, not occupation zones or fronts (e.g. Poland exists in 1942). Its own detail is limited: zoomed in close, a border may run beside the river or ridge it follows.
 - Wikidata gives one point per river or region; that's why shapes come from Natural Earth. Lesser-known rivers may match oddly.
 - Labels: the layout uses estimated text widths, so a very long name might touch a neighbour. At very low zoom (≈2) names may sit far from their area. Names are recomputed only when a pan/zoom/rotation ends; not tested with a rotated or tilted map.
 - Natural Earth and Wikidata credits show in the attribution even before anything is mapped (harmless).
-- When historical borders fail to load, an error flashes briefly in the status line during a run.
+- When historical borders fail to load, the error still flashes briefly in the status line during a run (the sidebar note and period box now explain it when the data isn't built). A missing marker file in index.html logs a "file not found" error in the browser console (harmless).
 
 ## Testing notes
 

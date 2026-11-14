@@ -6,8 +6,9 @@
     python3 tools/download_data.py --force    # download again even if files exist
     python3 tools/download_data.py --no-build # download only
 
-You only need this to rebuild or change data/cshapes.js and data/naturalearth.js.
-Those generated files are already in the repository, so the app works without it.
+Run this once after getting the code. It builds data/cshapes.js and
+data/naturalearth.js, which are not in the repository (git ignores them).
+Without them the app has no historical borders and no Natural Earth shapes.
 
 Downloads (about 50 MB in total) go to data/raw/, which git ignores:
   - CShapes 2.0 historical borders (CC BY-NC-SA 4.0), https://icr.ethz.ch/data/cshapes/
